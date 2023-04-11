@@ -1,30 +1,34 @@
+import os
+import numpy as np
 import SimpleITK as sitk
 
-# Define the paths to the input DICOM directories and output MHA file
-image_dir = "path/to/Image"
-label_dir = "path/to/Label"
-output_path = "path/to/output.mha"
+# Set the input and output directories
+input_dir = '/path/to/input/directory'
+output_dir = '/path/to/output/directory'
 
-# Load the image and label series as SimpleITK image objects
-image_series = sitk.ImageSeriesReader().GetGDCMSeriesFileNames(image_dir)
-label_series = sitk.ImageSeriesReader().GetGDCMSeriesFileNames(label_dir)
-
-image = sitk.ReadImage(image_series)
-label = sitk.ReadImage(label_series)
-
-# Combine the images and labels into a single 3D volume
-volume = sitk.JoinSeries([image, label])
-
-# Resample the volume to have isotropic voxel spacing
-original_spacing = volume.GetSpacing()
-min_spacing = min(original_spacing)
-new_spacing = [min_spacing]*3
-new_size = [int(round(osz*ospc/nspc)) for osz, ospc, nspc in zip(volume.GetSize(), original_spacing, new_spacing)]
-interpolator = sitk.sitkLinear
-resampled_volume = sitk.Resample(volume, new_size, sitk.Transform(), interpolator, volume.GetOrigin(), new_spacing, volume.GetDirection(), 0.0, volume.GetPixelID())
-
-# Set the voxel dimensions of the resampled volume to match the isotropic spacing
-resampled_volume.SetSpacing(new_spacing)
-
-# Save the resampled volume as an MHA file
-sitk.WriteImage(resampled_volume, output_path)
+# Loop over each patient directory
+for patient_dir in os.listdir(input_dir):
+    # Create a list to store the concatenated volumes for each patient
+    patient_volumes = []
+    
+    # Loop over each slice in the Image folder for this patient
+    image_dir = os.path.join(input_dir, patient_dir, 'Image')
+    slice_files = sorted(os.listdir(image_dir))
+    for i in range(1, len(slice_files)-1):
+        # Load the three consecutive slices
+        slice1 = sitk.ReadImage(os.path.join(image_dir, slice_files[i-1]))
+        slice2 = sitk.ReadImage(os.path.join(image_dir, slice_files[i]))
+        slice3 = sitk.ReadImage(os.path.join(image_dir, slice_files[i+1]))
+        
+        # Concatenate the slices into a 3D volume
+        volume = np.stack([sitk.GetArrayFromImage(slice1),
+                           sitk.GetArrayFromImage(slice2),
+                           sitk.GetArrayFromImage(slice3)],
+                          axis=-1)
+        
+        # Add the volume to the list of volumes for this patient
+        patient_volumes.append(volume)
+    
+    # Save the concatenated volumes as an .mha file
+    output_file = os.path.join(output_dir, f'{patient_dir}.mha')
+    sitk.WriteImage(sitk.GetImageFromArray(np.array(patient_volumes)), output_file)
