@@ -20,7 +20,7 @@ folder_names = []
 # Loop through the folders and copy them to the destination directory with the new name
 for i, folder in enumerate(folders):
     # Generate the new name for the folder
-    new_name = f"{prefix}{str(i+1).zfill(3)}"
+    new_name = f"{prefix}{str(i + 1).zfill(3)}"
 
     # Copy the folder and its contents to the destination directory with the new name
     shutil.copytree(os.path.join(src_dir, folder), os.path.join(dest_dir, new_name))

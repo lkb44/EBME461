@@ -1,34 +1,49 @@
 import os
 import numpy as np
+import pydicom
 import SimpleITK as sitk
 
-# Set the input and output directories
-input_dir = '/path/to/input/directory'
-output_dir = '/path/to/output/directory'
+# define path to data folders
+data_path = "/Users/leobao/Library/CloudStorage/GoogleDrive-lkb44@case.edu/Shared drives/EBME 461 Project/Data"
 
-# Loop over each patient directory
-for patient_dir in os.listdir(input_dir):
-    # Create a list to store the concatenated volumes for each patient
-    patient_volumes = []
-    
-    # Loop over each slice in the Image folder for this patient
-    image_dir = os.path.join(input_dir, patient_dir, 'Image')
-    slice_files = sorted(os.listdir(image_dir))
-    for i in range(1, len(slice_files)-1):
-        # Load the three consecutive slices
-        slice1 = sitk.ReadImage(os.path.join(image_dir, slice_files[i-1]))
-        slice2 = sitk.ReadImage(os.path.join(image_dir, slice_files[i]))
-        slice3 = sitk.ReadImage(os.path.join(image_dir, slice_files[i+1]))
+# loop through each patient folder
+for patient_folder in os.listdir(data_path):
+    if patient_folder.startswith("CA"):
+        # create path to image and label folders
+        image_folder = os.path.join(data_path, patient_folder, "Image")
+        label_folder = os.path.join(data_path, patient_folder, "Label")
         
-        # Concatenate the slices into a 3D volume
-        volume = np.stack([sitk.GetArrayFromImage(slice1),
-                           sitk.GetArrayFromImage(slice2),
-                           sitk.GetArrayFromImage(slice3)],
-                          axis=-1)
+        # get list of all image filenames in image folder
+        image_filenames = sorted([os.path.join(image_folder, filename) for filename in os.listdir(image_folder)])
         
-        # Add the volume to the list of volumes for this patient
-        patient_volumes.append(volume)
-    
-    # Save the concatenated volumes as an .mha file
-    output_file = os.path.join(output_dir, f'{patient_dir}.mha')
-    sitk.WriteImage(sitk.GetImageFromArray(np.array(patient_volumes)), output_file)
+        # get list of all label filenames in label folder
+        label_filenames = sorted([os.path.join(label_folder, filename) for filename in os.listdir(label_folder)])
+        
+        # loop through each slice and bisect
+        for i in range(len(image_filenames)):
+            # load the image and label slices
+            image_slice = pydicom.read_file(image_filenames[i]).pixel_array
+            label_slice = pydicom.read_file(label_filenames[i]).pixel_array
+            
+            # apply HU windowing
+            image_slice = np.clip(image_slice, -300, 600)
+            image_slice = (image_slice - (-300)) / (600 - (-300))
+            
+            # bisect the image and label slices
+            if i < len(image_filenames) // 2:
+                # bottom half of heart, sequence from bottom-to-middle
+                image_slice = image_slice[::-1]
+                label_slice = label_slice[::-1]
+                output_name = os.path.join(data_path, patient_folder + "_bottom", f"{patient_folder}_bottom_{i:03d}.mha")
+            else:
+                # top half of heart, sequence from top-to-middle
+                output_name = os.path.join(data_path, patient_folder + "_top", f"{patient_folder}_top_{i:03d}.mha")
+            
+            # save the image and label slices as a 3D volume
+            if not os.path.exists(os.path.dirname(output_name)):
+                os.makedirs(os.path.dirname(output_name))
+            sitk_image_slice = sitk.GetImageFromArray(image_slice)
+            sitk_label_slice = sitk.GetImageFromArray(label_slice)
+            sitk_image_slice.CopyInformation(sitk_label_slice)
+            sitk.WriteImage(sitk_image_slice, output_name)
+            print(f"Patient {patient_folder} bisected!")
