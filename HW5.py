@@ -37,11 +37,18 @@ for i in range(nrows-2, -1, -1):
     path.append((i, j))
 
 # Plot the results
-plt.imshow(img, cmap='gray')
+fig, ax = plt.subplots()
+ax.imshow(img, cmap='gray')
+
+for i in range(nrows):
+    for j in range(ncols):
+        ax.scatter(j, i, s=50, c='b', alpha=0.5)
+        ax.text(j, i, img[i, j], ha='center', va='center', color='w', fontsize=14)
+
 for i in range(nrows):
     for j in range(ncols):
         if i < nrows-1:
-            plt.plot([j, j-1, j+1], [i+1, i, i], 'b', alpha=0.1)
-plt.plot([j for _, j in path], [i for i, _ in path], 'r')
-plt.show()
+            ax.plot([j, j-1, j+1], [i+1, i, i], 'b', alpha=0.1)
 
+ax.plot([j for _, j in path], [i for i, _ in path], 'r')
+plt.show()
