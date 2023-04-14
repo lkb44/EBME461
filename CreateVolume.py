@@ -61,3 +61,5 @@ def preprocess_images(input_path, output_path):
             if not os.path.exists(os.path.dirname(output_filepath)):
                 os.makedirs(os.path.dirname(output_filepath))
             cv2.imwrite(output_filepath, img_resized)
+
+preprocess_images(input_path, output_path)
