@@ -1,14 +1,15 @@
-import numpy as np
 import os
+import numpy as np
 import nibabel as nib
 import pydicom
 from skimage import exposure
 
 def apply_preprocessing(img):
     # Apply 350 HU/40 HU window/level operation
-    img = exposure.rescale_intensity(img, in_range=(40, 390), out_range=(0, 1))
+    img = exposure.rescale_intensity(img, in_range=(-135, 215), out_range=(0, 1))
     img = exposure.adjust_gamma(img, gamma=0.8)
     img = np.uint8(img * 255)
+    # img = img
     return img
 
 def process_patient(patient_dir):
@@ -53,10 +54,11 @@ def process_patient(patient_dir):
     volume = np.concatenate(slabs, axis=2)
 
     # Save volume in NifTI format
+    patient_id = os.path.basename(patient_dir)
     output_dir = os.path.join(patient_dir, "Output")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    output_file = os.path.join(output_dir, "volume.nii.gz")
+    output_file = os.path.join(output_dir, f"{patient_id}_image_volume.nii.gz")
     nib.save(nib.Nifti1Image(volume, np.eye(4)), output_file)
 
 # Process all patients
