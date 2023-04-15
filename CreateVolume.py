@@ -9,12 +9,12 @@ def apply_preprocessing(img):
     img = exposure.rescale_intensity(img, in_range=(-135, 215), out_range=(0, 1))
     img = exposure.adjust_gamma(img, gamma=0.8)
     img = np.uint8(img * 255)
-    # img = img
+    #img = img
     return img
 
 def process_patient(patient_dir):
     # Get list of DICOM files for Image folder
-    img_folder = os.path.join(patient_dir, "Image")
+    img_folder = os.path.join(patient_dir, "image")
     img_files = sorted([f for f in os.listdir(img_folder) if f.endswith(".dcm")])
 
     # Divide heart slices into two equal halves
