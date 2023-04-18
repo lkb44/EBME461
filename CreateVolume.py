@@ -6,15 +6,15 @@ from skimage import exposure
 
 def apply_preprocessing(img):
     # Apply 350 HU/40 HU window/level operation
-    img = exposure.rescale_intensity(img, in_range=(-135, 215), out_range=(0, 1))
-    img = exposure.adjust_gamma(img, gamma=0.8)
-    img = np.uint8(img * 255)
-    #img = img
+    #img = exposure.rescale_intensity(img, in_range=(-135, 215), out_range=(0, 1))
+    #img = exposure.adjust_gamma(img, gamma=0.8)
+    #img = np.uint8(img * 255)
+    img = img
     return img
 
 def process_patient(patient_dir):
     # Get list of DICOM files for Image folder
-    img_folder = os.path.join(patient_dir, "image")
+    img_folder = os.path.join(patient_dir, "label")
     img_files = sorted([f for f in os.listdir(img_folder) if f.endswith(".dcm")])
 
     # Divide heart slices into two equal halves
@@ -35,19 +35,14 @@ def process_patient(patient_dir):
         img_slice = apply_preprocessing(dicom_file.pixel_array)
         img_slices_upper.append(img_slice)
 
-    # Generate input voxel slabs by concatenating 3 consecutive slices
     slabs = []
-    for i in range(len(img_slices_lower)-2):
-        slab = np.zeros((512, 512, 3), dtype=np.uint8)
+    for i in range(len(img_slices_lower)):
+        slab = np.zeros((512, 512, 1), dtype=np.uint8)
         slab[..., 0] = img_slices_lower[i]
-        slab[..., 1] = img_slices_lower[i+1]
-        slab[..., 2] = img_slices_lower[i+2]
         slabs.append(slab)
-    for i in range(len(img_slices_upper)-2):
-        slab = np.zeros((512, 512, 3), dtype=np.uint8)
+    for i in range(len(img_slices_upper)):
+        slab = np.zeros((512, 512, 1), dtype=np.uint8)
         slab[..., 0] = img_slices_upper[i]
-        slab[..., 1] = img_slices_upper[i+1]
-        slab[..., 2] = img_slices_upper[i+2]
         slabs.append(slab)
 
     # Concatenate slabs to form 3D volume
@@ -55,10 +50,10 @@ def process_patient(patient_dir):
 
     # Save volume in NifTI format
     patient_id = os.path.basename(patient_dir)
-    output_dir = os.path.join(patient_dir, "Output")
+    output_dir = os.path.join(patient_dir, "Output_redo")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    output_file = os.path.join(output_dir, f"{patient_id}_image_volume.nii.gz")
+    output_file = os.path.join(output_dir, f"{patient_id}_label_volume.nii.gz")
     nib.save(nib.Nifti1Image(volume, np.eye(4)), output_file)
 
 # Process all patients
