@@ -6,15 +6,15 @@ from skimage import exposure
 
 def apply_preprocessing(img):
     # Apply 350 HU/40 HU window/level operation
-    #img = exposure.rescale_intensity(img, in_range=(-135, 215), out_range=(0, 1))
-    #img = exposure.adjust_gamma(img, gamma=0.8)
-    #img = np.uint8(img * 255)
-    img = img
+    img = exposure.rescale_intensity(img, in_range=(-135, 215), out_range=(0, 1))
+    img = exposure.adjust_gamma(img, gamma=0.8)
+    img = np.uint8(img * 255)
+    #img = img
     return img
 
 def process_patient(patient_dir):
     # Get list of DICOM files for Image folder
-    img_folder = os.path.join(patient_dir, "label")
+    img_folder = os.path.join(patient_dir, "image")
     img_files = sorted([f for f in os.listdir(img_folder) if f.endswith(".dcm")])
 
     # Divide heart slices into two equal halves
@@ -50,10 +50,10 @@ def process_patient(patient_dir):
 
     # Save volume in NifTI format
     patient_id = os.path.basename(patient_dir)
-    output_dir = os.path.join(patient_dir, "Output_redo")
+    output_dir = os.path.join(patient_dir, "Output_2")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    output_file = os.path.join(output_dir, f"{patient_id}_label_volume.nii.gz")
+    output_file = os.path.join(output_dir, f"{patient_id}_image_volume.nii.gz")
     nib.save(nib.Nifti1Image(volume, np.eye(4)), output_file)
 
 # Process all patients
